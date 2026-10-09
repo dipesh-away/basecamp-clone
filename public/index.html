@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Basecamp Clone</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    li { margin: 0.25rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Basecamp Clone</h1>
+  <h2>Projects</h2>
+  <ul id="projects"></ul>
+  <form id="new-project">
+    <input id="name" placeholder="Project name" required />
+    <input id="description" placeholder="Description" />
+    <button>Add project</button>
+  </form>
+  <script>
+    async function refresh() {
+      const res = await fetch("/api/projects");
+      const projects = await res.json();
+      document.getElementById("projects").innerHTML =
+        projects.map((p) => `<li><strong>${p.name}</strong> — ${p.description}</li>`).join("");
+    }
+    document.getElementById("new-project").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: document.getElementById("name").value,
+          description: document.getElementById("description").value,
+        }),
+      });
+      e.target.reset();
+      refresh();
+    });
+    refresh();
+  </script>
+</body>
+</html>
