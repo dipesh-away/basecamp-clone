@@ -104,3 +104,47 @@ describe('projects', () => {
     assert.equal(updateRes.status, 404);
   });
 });
+
+describe("messages", () => {
+  it("creates and lists messages for a project", async () => {
+    const res = await fetch(`${base}/api/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Website redesign", description: "Q4 refresh" }),
+    });
+    assert.equal(res.status, 201);
+    const createdProject = (await res.json()) as { id: number };
+
+    const messageRes = await fetch(`${base}/api/projects/${createdProject.id}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Meeting notes", body: "Discuss Q4 goals" }),
+    });
+    assert.equal(messageRes.status, 201);
+    const createdMessage = (await messageRes.json()) as { id: number; title: string; body: string };
+    assert.equal(createdMessage.title, "Meeting notes");
+
+    const messagesRes = await fetch(`${base}/api/projects/${createdProject.id}/messages`);
+    const messages = (await messagesRes.json()) as { id: number; title: string; body: string }[];
+    assert.equal(messages.length, 1);
+    assert.equal(messages[0].title, "Meeting notes");
+  });
+
+  it("returns 404 for non-existent project", async () => {
+    const res = await fetch(`${base}/api/projects/999/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Meeting notes", body: "Discuss Q4 goals" }),
+    });
+    assert.equal(res.status, 404);
+  });
+
+  it("rejects missing title", async () => {
+    const res = await fetch(`${base}/api/projects/1/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "", body: "Discuss Q4 goals" }),
+    });
+    assert.equal(res.status, 400);
+  });
+});

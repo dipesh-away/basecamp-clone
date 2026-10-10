@@ -9,10 +9,11 @@ export interface Project {
   created_at: string;
 }
 
-export interface TodoList {
+export interface Message {
   id: number;
   project_id: number;
-  name: string;
+  title: string;
+  body: string;
   created_at: string;
 }
 
@@ -42,31 +43,33 @@ export function createApp(db: DatabaseSync): Express {
     res.status(201).json(row);
   });
 
-  app.patch("/api/projects/:id", (req, res) => {
-    const id = Number(req.params.id);
-    if (isNaN(id)) {
-      res.status(404).json({ error: "Invalid project ID" });
+  app.get("/api/projects/:id/messages", (req, res) => {
+    const projectId = Number(req.params.id);
+    const rows = db.prepare("SELECT * FROM messages WHERE project_id = ? ORDER BY created_at DESC").all(projectId) as unknown as Message[];
+    if (!rows.length) {
+      res.status(404).json({ error: "project not found" });
       return;
     }
+    res.json(rows);
+  });
 
-    const name = String(req.body?.name ?? "").trim();
-    if (!name) {
-      res.status(400).json({ error: "name is required" });
+  app.post("/api/projects/:id/messages", (req, res) => {
+    const projectId = Number(req.params.id);
+    const title = String(req.body?.title ?? "").trim();
+    const body = String(req.body?.body ?? "");
+    if (!title) {
+      res.status(400).json({ error: "title is required" });
       return;
     }
-
-    const description = String(req.body?.description ?? "");
-
-    const updatedRow = db
-      .prepare("UPDATE projects SET name = ?, description = ? WHERE id = ? RETURNING *")
-      .get(name, description, id) as unknown as Project;
-
-    if (!updatedRow) {
-      res.status(404).json({ error: "Project not found" });
+    const projectExists = db.prepare("SELECT 1 FROM projects WHERE id = ?").get(projectId) !== undefined;
+    if (!projectExists) {
+      res.status(404).json({ error: "project not found" });
       return;
     }
-
-    res.json(updatedRow);
+    const row = db
+      .prepare("INSERT INTO messages (project_id, title, body) VALUES (?, ?, ?) RETURNING *")
+      .get(projectId, title, body) as unknown as Message;
+    res.status(201).json(row);
   });
 
   app.use(express.static("public"));
