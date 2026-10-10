@@ -9,6 +9,13 @@ export interface Project {
   created_at: string;
 }
 
+export interface TodoList {
+  id: number;
+  project_id: number;
+  name: string;
+  created_at: string;
+}
+
 export function createApp(db: DatabaseSync): Express {
   const app = express();
   app.use(express.json());

@@ -1,15 +1,40 @@
 {
-  "goal": "Implement project renaming and description updating via PATCH /api/projects/:id. Ensure validation for empty name and missing ID, return updated project JSON, and add corresponding tests. The change is focused and agent-sized, aligning with the roadmap for project management features.",
+  "goal": "Implement CRUD operations for to-do lists nested under projects, following Basecamp's structure. Add a new `todolists` table, define API endpoints for listing and creating lists under a project, and ensure compatibility with existing code style and test suite.",
   "files_changed": [
+    "src/db.ts",
     "src/server.ts",
     "tests/app.test.ts"
   ],
   "tests_run": [],
-  "failures": [],
+  "failures": [
+    {
+      "severity": "high",
+      "file": "src/server.ts",
+      "line": 42,
+      "problem": "The GET /api/projects/:id/todolists route incorrectly returns a 404 error with message 'project not found' when no to-do lists exist, but the test expects an empty array. This violates the acceptance criteria which requires returning an empty list instead of a 404 error for a missing project.",
+      "suggested_fix": "Modify the GET route to return an empty array when no to-do lists are found, instead of returning a 404 error. The error should only be raised if the project itself is not found."
+    },
+    {
+      "severity": "high",
+      "file": "src/server.ts",
+      "line": 48,
+      "problem": "The POST /api/projects/:id/todolists route fails with a 500 error when attempting to insert a to-do list because it does not validate that the project exists before attempting to insert. This results in a database error due to a missing project, violating the acceptance criteria which requires a 404 response for non-existent projects.",
+      "suggested_fix": "Before inserting a to-do list, validate that the project exists by checking the projects table. If the project does not exist, return a 404 error. Otherwise, proceed with the insert operation."
+    },
+    {
+      "severity": "medium",
+      "file": "src/server.ts",
+      "line": 48,
+      "problem": "The POST route incorrectly uses `db.prepare(...).get(projectId, name)` without properly handling the project existence check, leading to a database constraint failure. This is a result of the missing project validation and improper error handling.",
+      "suggested_fix": "Add a query to check if the project exists in the database before attempting to insert a to-do list. If the project does not exist, return a 404 response with a descriptive message."
+    }
+  ],
   "next_action": "verify",
   "acceptance_criteria_status": [
-    "PATCH /api/projects/:id accepts {name, description}; empty name -> 400, missing id -> 40",
-    "Returns updated project JSON",
-    "Add tests; npm test passes"
+    "- New table todolists (id, project_id FK, name, created_at)",
+    "- GET /api/projects/:id/todolists lists lists for that project (404 if project missing)",
+    "- POST /api/projects/:id/todolists with {name} creates one (400 without name, 404 if project missing)",
+    "- Follow existing style in src/server.ts, extend tests in tests/app.test.ts",
+    "- npm test passes"
   ]
 }
