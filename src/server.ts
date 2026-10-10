@@ -42,36 +42,31 @@ export function createApp(db: DatabaseSync): Express {
     res.status(201).json(row);
   });
 
-  app.get("/api/projects/:id/todolists", (req, res) => {
-    const projectId = parseInt(req.params.id, 10);
-    const rows = db
-      .prepare("SELECT * FROM todolists WHERE project_id = ? ORDER BY id")
-      .all(projectId) as unknown as TodoList[];
-    if (rows.length === 0) {
-      res.status(200).json([]);
-    } else {
-      res.json(rows);
+  app.patch("/api/projects/:id", (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      res.status(404).json({ error: "Invalid project ID" });
+      return;
     }
-  });
 
-  app.post("/api/projects/:id/todolists", (req, res) => {
-    const projectId = parseInt(req.params.id, 10);
     const name = String(req.body?.name ?? "").trim();
     if (!name) {
       res.status(400).json({ error: "name is required" });
       return;
     }
-    const projectExists = db
-      .prepare("SELECT 1 FROM projects WHERE id = ?")
-      .get(projectId) !== undefined;
-    if (!projectExists) {
-      res.status(404).json({ error: "project not found" });
+
+    const description = String(req.body?.description ?? "");
+
+    const updatedRow = db
+      .prepare("UPDATE projects SET name = ?, description = ? WHERE id = ? RETURNING *")
+      .get(name, description, id) as unknown as Project;
+
+    if (!updatedRow) {
+      res.status(404).json({ error: "Project not found" });
       return;
     }
-    const row = db
-      .prepare("INSERT INTO todolists (project_id, name) VALUES (?, ?) RETURNING *")
-      .get(projectId, name) as unknown as TodoList;
-    res.status(201).json(row);
+
+    res.json(updatedRow);
   });
 
   app.use(express.static("public"));
