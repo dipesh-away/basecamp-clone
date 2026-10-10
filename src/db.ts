@@ -1,4 +1,3 @@
-/** SQLite store. Factory takes a path so tests can use :memory:. */
 import { DatabaseSync } from "node:sqlite";
 
 export function initDb(path = process.env.DB_PATH ?? "./data.db"): DatabaseSync {
@@ -8,6 +7,15 @@ export function initDb(path = process.env.DB_PATH ?? "./data.db"): DatabaseSync 
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       description TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
