@@ -1,5 +1,5 @@
 {
-  "goal": "Implement a messages board per project similar to Basecamp, with a new database table, API endpoints for listing and creating messages, and integration with existing code style and tests.",
+  "goal": "Implement CRUD operations for to-do lists nested under projects, following Basecamp's structure. Add a new `todolists` table, define API endpoints for listing and creating lists under a project, and ensure compatibility with existing code style and test suite.",
   "files_changed": [
     "src/db.ts",
     "src/server.ts",
