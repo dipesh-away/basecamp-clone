@@ -1,0 +1,15 @@
+{
+  "goal": "Implement project renaming and description updating via PATCH /api/projects/:id. Ensure validation for empty name and missing ID, return updated project JSON, and add corresponding tests. The change is focused and agent-sized, aligning with the roadmap for project management features.",
+  "files_changed": [
+    "src/server.ts",
+    "tests/app.test.ts"
+  ],
+  "tests_run": [],
+  "failures": [],
+  "next_action": "verify",
+  "acceptance_criteria_status": [
+    "PATCH /api/projects/:id accepts {name, description}; empty name -> 400, missing id -> 40",
+    "Returns updated project JSON",
+    "Add tests; npm test passes"
+  ]
+}

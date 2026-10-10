@@ -35,6 +35,33 @@ export function createApp(db: DatabaseSync): Express {
     res.status(201).json(row);
   });
 
+  app.patch("/api/projects/:id", (req, res) => {
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      res.status(404).json({ error: "Invalid project ID" });
+      return;
+    }
+
+    const name = String(req.body?.name ?? "").trim();
+    if (!name) {
+      res.status(400).json({ error: "name is required" });
+      return;
+    }
+
+    const description = String(req.body?.description ?? "");
+
+    const updatedRow = db
+      .prepare("UPDATE projects SET name = ?, description = ? WHERE id = ? RETURNING *")
+      .get(name, description, id) as unknown as Project;
+
+    if (!updatedRow) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+
+    res.json(updatedRow);
+  });
+
   app.use(express.static("public"));
 
   return app;
