@@ -1,30 +1,40 @@
 {
-  "goal": "Implement a to-do list and item UI on the project detail page, following plain JS and existing style. The feature will allow users to create lists, add items, check/uncheck items, and interact with the API. The implementation must be consistent with the current frontend style and pass all tests.",
+  "goal": "Implement CRUD operations for to-do lists nested under projects, following Basecamp's structure. Add a new `todolists` table, define API endpoints for listing and creating lists under a project, and ensure compatibility with existing code style and test suite.",
   "files_changed": [
-    "public/index.html"
+    "src/db.ts",
+    "src/server.ts",
+    "tests/app.test.ts"
   ],
   "tests_run": [],
   "failures": [
     {
-      "severity": "medium",
-      "file": "public/index.html",
-      "line": 38,
-      "problem": "The DOM manipulation for creating to-do list containers and items is done via innerHTML, which is prone to XSS if user input is not sanitized. Although the data comes from the API, the current implementation does not validate or sanitize the input before rendering, potentially exposing the app to security risks.",
-      "suggested_fix": "Add input sanitization or use a trusted template engine or library (e.g., DOMPurify) when rendering user-generated content. For example, sanitize the `name` and `text` fields before rendering in the HTML template."
+      "severity": "high",
+      "file": "src/server.ts",
+      "line": 42,
+      "problem": "The GET /api/projects/:id/todolists route incorrectly returns a 404 error with message 'project not found' when no to-do lists exist, but the test expects an empty array. This violates the acceptance criteria which requires returning an empty list instead of a 404 error for a missing project.",
+      "suggested_fix": "Modify the GET route to return an empty array when no to-do lists are found, instead of returning a 404 error. The error should only be raised if the project itself is not found."
+    },
+    {
+      "severity": "high",
+      "file": "src/server.ts",
+      "line": 48,
+      "problem": "The POST /api/projects/:id/todolists route fails with a 500 error when attempting to insert a to-do list because it does not validate that the project exists before attempting to insert. This results in a database error due to a missing project, violating the acceptance criteria which requires a 404 response for non-existent projects.",
+      "suggested_fix": "Before inserting a to-do list, validate that the project exists by checking the projects table. If the project does not exist, return a 404 error. Otherwise, proceed with the insert operation."
     },
     {
       "severity": "medium",
-      "file": "public/index.html",
-      "line": 45,
-      "problem": "The form submission handler only handles adding items to a to-do list, but does not validate that the item text is not empty or invalid. This could lead to malformed data being sent to the API.",
-      "suggested_fix": "Add validation before submitting the form. For example, check if `itemText.trim()` is not empty before making the API call. If empty, show a user-friendly error message."
+      "file": "src/server.ts",
+      "line": 48,
+      "problem": "The POST route incorrectly uses `db.prepare(...).get(projectId, name)` without properly handling the project existence check, leading to a database constraint failure. This is a result of the missing project validation and improper error handling.",
+      "suggested_fix": "Add a query to check if the project exists in the database before attempting to insert a to-do list. If the project does not exist, return a 404 response with a descriptive message."
     }
   ],
   "next_action": "verify",
   "acceptance_criteria_status": [
-    "On the homepage, clicking a project shows its to-do lists with their items",
-    "Can create a list, add items, check/uncheck items — all wired to the existing API",
-    "Plain JS in public/, no framework; follow existing style",
-    "npm test passes"
+    "- New table todolists (id, project_id FK, name, created_at)",
+    "- GET /api/projects/:id/todolists lists lists for that project (404 if project missing)",
+    "- POST /api/projects/:id/todolists with {name} creates one (400 without name, 404 if project missing)",
+    "- Follow existing style in src/server.ts, extend tests in tests/app.test.ts",
+    "- npm test passes"
   ]
 }
