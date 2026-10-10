@@ -1,0 +1,30 @@
+{
+  "goal": "Implement a to-do list and item UI on the project detail page, following plain JS and existing style. The feature will allow users to create lists, add items, check/uncheck items, and interact with the API. The implementation must be consistent with the current frontend style and pass all tests.",
+  "files_changed": [
+    "public/index.html"
+  ],
+  "tests_run": [],
+  "failures": [
+    {
+      "severity": "medium",
+      "file": "public/index.html",
+      "line": 38,
+      "problem": "The DOM manipulation for creating to-do list containers and items is done via innerHTML, which is prone to XSS if user input is not sanitized. Although the data comes from the API, the current implementation does not validate or sanitize the input before rendering, potentially exposing the app to security risks.",
+      "suggested_fix": "Add input sanitization or use a trusted template engine or library (e.g., DOMPurify) when rendering user-generated content. For example, sanitize the `name` and `text` fields before rendering in the HTML template."
+    },
+    {
+      "severity": "medium",
+      "file": "public/index.html",
+      "line": 45,
+      "problem": "The form submission handler only handles adding items to a to-do list, but does not validate that the item text is not empty or invalid. This could lead to malformed data being sent to the API.",
+      "suggested_fix": "Add validation before submitting the form. For example, check if `itemText.trim()` is not empty before making the API call. If empty, show a user-friendly error message."
+    }
+  ],
+  "next_action": "verify",
+  "acceptance_criteria_status": [
+    "On the homepage, clicking a project shows its to-do lists with their items",
+    "Can create a list, add items, check/uncheck items — all wired to the existing API",
+    "Plain JS in public/, no framework; follow existing style",
+    "npm test passes"
+  ]
+}
