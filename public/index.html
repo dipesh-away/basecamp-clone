@@ -18,12 +18,12 @@
     <input id="description" placeholder="Description" />
     <button>Add project</button>
   </form>
+  <div id="project-detail-container"></div>
   <script>
     async function refresh() {
       const res = await fetch("/api/projects");
       const projects = await res.json();
-      document.getElementById("projects").innerHTML =
-        projects.map((p) => `<li><strong>${p.name}</strong> — ${p.description}</li>`).join("");
+      document.getElementById("projects").innerHTML = projects.map((p) => `<li><strong>${p.name}</strong> — ${p.description} <a href="#" data-project-id="${p.id}">View To-Do Lists</a></li>`).join("");
     }
     document.getElementById("new-project").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -38,7 +38,41 @@
       e.target.reset();
       refresh();
     });
-    refresh();
+    document.addEventListener("click", async (e) => {
+      if (e.target.tagName === "A" && e.target.dataset.projectId) {
+        e.preventDefault();
+        const projectId = e.target.dataset.projectId;
+        const res = await fetch(`/api/projects/${projectId}/todolists`);
+        const todolists = await res.json();
+        const todolistContainer = document.createElement("div");
+        todolistContainer.innerHTML = todolists.map((tl) => `<h3>${tl.name}</h3><ul id="todolist-${tl.id}"></ul><form id="new-todolist-${tl.id}"><input id="item-${tl.id}" placeholder="Item" required /><button>Add item</button></form>`).join("");
+        document.getElementById("project-detail-container").innerHTML = todolistContainer.outerHTML;
+        todolists.forEach((tl) => {
+          refreshTodolist(tl.id);
+        });
+      }
+    });
+    async function refreshTodolist(todolistId) {
+      const res = await fetch(`/api/projects/${todolistId}/items`);
+      const items = await res.json();
+      document.getElementById(`todolist-${todolistId}`).innerHTML = items.map((i) => `<li><input type="checkbox" ${i.completed ? "checked" : ""} /> ${i.text}</li>`).join("");
+    }
+    document.addEventListener("submit", async (e) => {
+      if (e.target.id.startsWith("new-todolist-")) {
+        e.preventDefault();
+        const todolistId = e.target.id.split("-")[2];
+        const itemText = document.getElementById(`item-${todolistId}`).value;
+        await fetch(`/api/projects/${todolistId}/items`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: itemText,
+          }),
+        });
+        document.getElementById(`item-${todolistId}`).value = "";
+        refreshTodolist(todolistId);
+      }
+    });
   </script>
 </body>
 </html>
