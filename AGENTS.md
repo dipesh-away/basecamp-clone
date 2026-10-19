@@ -35,3 +35,14 @@ Guidance for any agent working in this repository. Follow it exactly.
 
 - `node:test` + `node:assert/strict`, run against an in-memory DB (`initDb(":memory:")`).
 - Each feature gets its own `describe` block with the happy path and the error paths.
+
+### Do not restructure the test harness
+
+The `before`/`after` hooks, the shared `server`/`db` variables and the
+`base` URL setup are already correct. Keep them byte-for-byte and **append new
+`describe` blocks**. Rewriting the harness is the single most common way to
+break the suite: a throwing `after` hook cancels every other test.
+
+- Add tests by appending; never re-declare `before`, `after`, `server`, `db`, or `base`.
+- `npm test` runs `tsc` first, so a type error is a test failure. Booleans from
+  `node:sqlite` are numbers — compare with `0`/`1` or wrap in `Boolean(...)`.
