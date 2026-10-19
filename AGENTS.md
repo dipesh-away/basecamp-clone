@@ -13,6 +13,10 @@ Guidance for any agent working in this repository. Follow it exactly.
 - The driver binds **only** `number | string | bigint | null | Uint8Array`. It does **not** accept `boolean`.
   - Store booleans as `INTEGER` `0` / `1`. Convert at the boundary: `const done = req.body.done ? 1 : 0;`
   - Read them back as numbers: `Boolean(row.done)`.
+- **The JSON API exposes real booleans, never `0`/`1`.** Convert on the way out:
+  `res.json({ ...row, done: Boolean(row.done) })`. A test asserting `done === false`
+  is therefore correct, and a response containing `"done": 0` is the bug. Do not
+  settle this by changing the test to expect `0`.
 - Always pass parameters as bound values, never string-interpolated SQL.
 - Use `RETURNING *` with `.get(...)` for inserts and updates that should return the row.
 - `.all(...)` returns an array, `.get(...)` returns one row or `undefined`.
