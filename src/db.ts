@@ -11,6 +11,15 @@ export function initDb(path = process.env.DB_PATH ?? "./data.db"): DatabaseSync 
     );
   `);
   db.exec(`
+    CREATE TABLE IF NOT EXISTS todolists (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (project_id) REFERENCES projects(id)
+    );
+  `);
+  db.exec(`
     CREATE TABLE IF NOT EXISTS messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_id INTEGER NOT NULL,
