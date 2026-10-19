@@ -11,8 +11,20 @@ Guidance for any agent working in this repository. Follow it exactly.
 ## `node:sqlite` rules (read carefully)
 
 - The driver binds **only** `number | string | bigint | null | Uint8Array`. It does **not** accept `boolean`.
-  - Store booleans as `INTEGER` `0` / `1`. Convert at the boundary: `const done = req.body.done ? 1 : 0;`
-  - Read them back as numbers: `Boolean(row.done)`.
+  - Declare such a column exactly like this: `done INTEGER NOT NULL DEFAULT 0`.
+    The `0`/`1` are *values you bind*, not SQL syntax — writing
+    `done INTEGER 0/1` inside a `CREATE TABLE` is a syntax error.
+  - Bind at the boundary: `const done = req.body.done ? 1 : 0;`
+  - Read as a number: `Boolean(row.done)`.
+
+  ```ts
+  db.exec(`CREATE TABLE IF NOT EXISTS widget (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    label TEXT NOT NULL,
+    enabled INTEGER NOT NULL DEFAULT 0
+  )`);
+  ```
+
 - **The JSON API exposes real booleans, never `0`/`1`.** Convert on the way out:
   `res.json({ ...row, done: Boolean(row.done) })`. A test asserting `done === false`
   is therefore correct, and a response containing `"done": 0` is the bug. Do not
