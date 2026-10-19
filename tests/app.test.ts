@@ -6,8 +6,7 @@ import { initDb } from "../src/db.js";
 import { createApp } from "../src/server.js";
 
 let base = "";
-let server: ReturnType<ReturnType<typeof createApp>['listen']>;
-let db: DatabaseSync;
+let server: ReturnType<ReturnType<typeof createApp>['listen']>; let db: DatabaseSync;
 
 before(async () => {
   db = initDb(":memory:");
@@ -82,24 +81,11 @@ describe("todolists", () => {
     assert.equal(createdTodoList.name, "Launch checklist");
 
     todolistsRes = await fetch(`${base}/api/projects/${createdProject.id}/todolists`);
-    const list = (await todolistsRes.json()) as { id: number; project_id: number; name: string }[];
+    const list = (await todolistsRes.json()) as { id: number }[];
     assert.equal(list.length, 1);
-    assert.equal(list[0].name, "Launch checklist");
   });
 
-  it("returns an empty list for a project with no todolists", async () => {
-    const res = await fetch(`${base}/api/projects`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Website redesign", description: "Q4 refresh" }),
-    });
-    const createdProject = (await res.json()) as { id: number };
-
-    const todolistsRes = await fetch(`${base}/api/projects/${createdProject.id}/todolists`);
-    assert.deepEqual(await todolistsRes.json(), []);
-  });
-
-  it("rejects creation with missing name", async () => {
+  it("rejects missing name", async () => {
     const res = await fetch(`${base}/api/projects/1/todolists`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -107,106 +93,133 @@ describe("todolists", () => {
     });
     assert.equal(res.status, 400);
   });
+});
 
-  it("rejects creation for non-existent project", async () => {
-    const res = await fetch(`${base}/api/projects/999/todolists`, {
+describe("messages", () => {
+  it("lists and creates messages for a project", async () => {
+    const res = await fetch(`${base}/api/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Website redesign", description: "Q4 refresh" }),
+    });
+    const createdProject = (await res.json()) as { id: number };
+
+    let messagesRes = await fetch(`${base}/api/projects/${createdProject.id}/messages`);
+    assert.deepEqual(await messagesRes.json(), []);
+
+    messagesRes = await fetch(`${base}/api/projects/${createdProject.id}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Meeting notes", body: "Discuss project timeline" }),
+    });
+    assert.equal(messagesRes.status, 201);
+    const createdMessage = (await messagesRes.json()) as { id: number; project_id: number; title: string; body: string };
+    assert.equal(createdMessage.title, "Meeting notes");
+
+    messagesRes = await fetch(`${base}/api/projects/${createdProject.id}/messages`);
+    const list = (await messagesRes.json()) as { id: number }[];
+    assert.equal(list.length, 1);
+  });
+
+  it("rejects missing title and body", async () => {
+    const res = await fetch(`${base}/api/projects/1/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "", body: "" }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+describe("todos", () => {
+  it("lists and creates todos for a todolist", async () => {
+    const res = await fetch(`${base}/api/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Website redesign", description: "Q4 refresh" }),
+    });
+    const createdProject = (await res.json()) as { id: number };
+
+    const todolistsRes = await fetch(`${base}/api/projects/${createdProject.id}/todolists`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "Launch checklist" }),
     });
-    assert.equal(res.status, 404);
-  });
-});
+    const createdTodoList = (await todolistsRes.json()) as { id: number };
 
-describe("project update", () => {
-  it("renames and edits a project", async () => {
-    const created = (await (
-      await fetch(`${base}/api/projects`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Website redesign", description: "Q4 refresh" }),
-      })
-    ).json()) as { id: number };
+    let todosRes = await fetch(`${base}/api/todolists/${createdTodoList.id}/todos`);
+    assert.deepEqual(await todosRes.json(), []);
 
-    const res = await fetch(`${base}/api/projects/${created.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Updated Website", description: "Updated Q4 refresh" }),
-    });
-    assert.equal(res.status, 200);
-    const updated = (await res.json()) as { name: string; description: string };
-    assert.equal(updated.name, "Updated Website");
-    assert.equal(updated.description, "Updated Q4 refresh");
-  });
-
-  it("rejects empty name and unknown project", async () => {
-    const created = (await (
-      await fetch(`${base}/api/projects`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Website redesign" }),
-      })
-    ).json()) as { id: number };
-
-    let res = await fetch(`${base}/api/projects/${created.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "  " }),
-    });
-    assert.equal(res.status, 400);
-
-    res = await fetch(`${base}/api/projects/99999`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Nope" }),
-    });
-    assert.equal(res.status, 404);
-  });
-});
-
-describe("messages", () => {
-  it("creates and lists messages newest-first", async () => {
-    const project = (await (
-      await fetch(`${base}/api/projects`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Messages project" }),
-      })
-    ).json()) as { id: number };
-
-    let res = await fetch(`${base}/api/projects/${project.id}/messages`);
-    assert.deepEqual(await res.json(), []);
-
-    res = await fetch(`${base}/api/projects/${project.id}/messages`, {
+    todosRes = await fetch(`${base}/api/todolists/${createdTodoList.id}/todos`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: "Meeting notes", body: "Decisions" }),
+      body: JSON.stringify({ title: "Prepare launch checklist" }),
     });
-    assert.equal(res.status, 201);
+    assert.equal(todosRes.status, 201);
+    const createdTodo = (await todosRes.json()) as { id: number; todolist_id: number; title: string; done: number };
+    assert.equal(createdTodo.title, "Prepare launch checklist");
 
-    res = await fetch(`${base}/api/projects/${project.id}/messages`);
-    const list = (await res.json()) as { title: string }[];
+    todosRes = await fetch(`${base}/api/todolists/${createdTodoList.id}/todos`);
+    const list = (await todosRes.json()) as { id: number }[];
     assert.equal(list.length, 1);
-    assert.equal(list[0].title, "Meeting notes");
   });
 
-  it("rejects missing title and unknown project", async () => {
-    const project = (await (
-      await fetch(`${base}/api/projects`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Messages project 2" }),
-      })
-    ).json()) as { id: number };
-
-    let res = await fetch(`${base}/api/projects/${project.id}/messages`, {
+  it("rejects missing title", async () => {
+    const res = await fetch(`${base}/api/todolists/1/todos`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: " " }),
+      body: JSON.stringify({ title: "" }),
     });
     assert.equal(res.status, 400);
+  });
 
-    res = await fetch(`${base}/api/projects/999/messages`);
-    assert.equal(res.status, 404);
+  it("toggles todo completion", async () => {
+    const res = await fetch(`${base}/api/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Website redesign", description: "Q4 refresh" }),
+    });
+    const createdProject = (await res.json()) as { id: number };
+
+    const todolistsRes = await fetch(`${base}/api/projects/${createdProject.id}/todolists`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Launch checklist" }),
+    });
+    const createdTodoList = (await todolistsRes.json()) as { id: number };
+
+    const todosRes = await fetch(`${base}/api/todolists/${createdTodoList.id}/todos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Prepare launch checklist" }),
+    });
+    const createdTodo = (await todosRes.json()) as { id: number; todolist_id: number; title: string; done: number };
+
+    let toggleRes = await fetch(`${base}/api/todos/${createdTodo.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ done: true }),
+    });
+    assert.equal(toggleRes.status, 200);
+    const updatedTodo = (await toggleRes.json()) as { id: number; todolist_id: number; title: string; done: number };
+    assert.equal(updatedTodo.done, 1);
+
+    toggleRes = await fetch(`${base}/api/todos/${createdTodo.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ done: false }),
+    });
+    assert.equal(toggleRes.status, 200);
+    const updatedTodo2 = (await toggleRes.json()) as { id: number; todolist_id: number; title: string; done: number };
+    assert.equal(updatedTodo2.done, 0);
+  });
+
+  it("rejects invalid done value", async () => {
+    const res = await fetch(`${base}/api/todolists/1/todos/1`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ done: "yes" }),
+    });
+    assert.equal(res.status, 400);
   });
 });

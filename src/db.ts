@@ -28,5 +28,15 @@ export function initDb(path = process.env.DB_PATH ?? "./data.db"): DatabaseSync 
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS todos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      todolist_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      done INTEGER 0/1 DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (todolist_id) REFERENCES todolists(id)
+    );
+  `);
   return db;
 }
